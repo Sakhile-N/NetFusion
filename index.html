@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgriScan AI - Crop Health Analysis</title>
+<style>
+  html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-image: url('https://www.agdaily.com/wp-content/uploads/2019/01/bg-farmland-By-MaxyM.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  color: #1e3d1e;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 50, 0, 0.25);
+  z-index: -1;
+}
+
+header {
+  background-color: transparent;
+  color: #1a310c;
+  width: 100%;
+  text-align: center;
+  padding: 1.5rem 0;
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+main {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 12px;
+  padding: 2rem 3rem;
+  width: 90vw;
+  max-width: 1200px;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+label {
+  display: block;
+  margin-top: 1.5rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+}
+
+input[type="file"] {
+  margin-top: 0.6rem;
+  width: 100%;
+  font-size: 1.1rem;
+  padding: 0.6rem;
+}
+
+select {
+  margin-top: 0.6rem;
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 8px;
+  border: 2px solid #2b7a2b;
+  background-color: #d7edd7;
+  font-weight: 700;
+  color: #1e3d1e;
+  font-size: 1.2rem;
+}
+
+button {
+  margin-top: 2rem;
+  width: 100%;
+  background-color: #2b7a2b;
+  color: white;
+  font-weight: 800;
+  font-size: 1.6rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+button:disabled {
+  background-color: #97b997;
+  cursor: not-allowed;
+}
+
+#preview-img {
+  display: none;
+  max-width: 90vw;
+  max-height: 50vh;
+  margin-top: 1.8rem;
+  border-radius: 12px;
+  border: 2px solid #ccc;
+  object-fit: contain;
+}
+
+#webcam-container {
+  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 640px;
+  text-align: center;
+}
+
+#webcam {
+  width: 100%;
+  max-height: 360px;
+  border-radius: 12px;
+  border: 2px solid #2b7a2b;
+  object-fit: cover;
+  background-color: black;
+}
+
+#capture-btn {
+  margin-top: 1rem;
+  background-color: #4a9a4a;
+  font-weight: 700;
+  font-size: 1.3rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition: background-color 0.3s ease;
+  text-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+#capture-btn:hover {
+  background-color: #3b7b3b;
+}
+
+#status {
+  margin-top: 2rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+}
+
+#prediction {
+  margin-top: 1.8rem;
+  padding: 1.5rem;
+  background-color: rgba(215, 237, 215, 0.8);
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.3rem;
+  width: 100%;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+}
+
+ul.pred-list {
+  margin: 0.8rem 0 0 1.2rem;
+  font-size: 1.2rem;
+}
+
+ul.pred-list li {
+  margin-bottom: 0.5rem;
+}
+</style>
+
+</head>
+<body>
+<header>AgriScan AI</header>
+<main>
+  <label for="image-upload">Upload Crop Image (JPG/PNG, ≤10MB)</label>
+  <input type="file" id="image-upload" accept=".jpg,.jpeg,.png" />
+
+  <div id="webcam-container">
+    <video id="webcam" autoplay playsinline></video>
+    <button id="capture-btn" type="button">Capture Photo</button>
+  </div>
+
+  <img id="preview-img" alt="Image preview" />
+
+  <label for="crop-type">Select Crop Type</label>
+  <select id="crop-type" aria-label="Select Crop Type">
+    <option value="potato">Potato</option>
+    <option value="corn">Corn</option>
+    <option value="rice">Rice</option>
+  </select>
+
+  <button id="analyze-btn" disabled>Analyze Crop Health</button>
+
+  <div id="status">Loading model, please wait...</div>
+  <div id="prediction"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
+  const MODEL_URL = 'https://teachablemachine.withgoogle.com/models/fMkpDpa7G/';
+  const uploadEl = document.getElementById('image-upload');
+  const previewImg = document.getElementById('preview-img');
+  const cropType = document.getElementById('crop-type');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  const statusEl = document.getElementById('status');
+  const predictionEl = document.getElementById('prediction');
+  const webcamVideo = document.getElementById('webcam');
+  const captureBtn = document.getElementById('capture-btn');
+
+  let model;
+  const maxFileSizeMB = 10;
+
+  // ✅ Treatments mapping
+  const treatments = {
+    "Corn Blight": "Use resistant hybrids, rotate crops, and apply fungicides like mancozeb.",
+    "Corn Common Rust": "Plant resistant varieties and apply fungicides if infection is severe.",
+    "Corn Gray Leaf Spot": "Rotate crops, remove infected debris, and apply strobilurin fungicides.",
+    "Corn Healthy": "No treatment needed — crop is healthy.",
+    "Potato Early blight": "Remove infected leaves, avoid overhead irrigation, and use chlorothalonil spray.",
+    "Potato healthy": "No treatment needed — crop is healthy.",
+    "Potato Late blight": "Destroy infected plants and apply mancozeb or copper-based fungicides.",
+    "Rice Bacterial blight": "Plant resistant varieties, avoid excessive nitrogen, and ensure proper field drainage.",
+    "Rice Brown spot": "Apply balanced fertilizer and seed treat with fungicides like carbendazim.",
+    "Rice Leaf smut": "Use resistant varieties and apply recommended fungicides."
+  };
+
+  // Load model
+  async function loadModel() {
+    try {
+      model = await tmImage.load(MODEL_URL + 'model.json', MODEL_URL + 'metadata.json');
+      statusEl.textContent = 'Model loaded! Upload an image or capture from webcam.';
+    } catch (err) {
+      statusEl.textContent = 'Failed to load model: ' + err.message;
+      console.error(err);
+    }
+  }
+
+  // Webcam setup
+  async function startWebcam() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      webcamVideo.srcObject = stream;
+    } catch (err) {
+      console.warn('Webcam not accessible:', err);
+      statusEl.textContent = 'Webcam not accessible or permission denied.';
+      captureBtn.disabled = true;
+    }
+  }
+
+  // Capture photo from webcam
+  captureBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = webcamVideo.videoWidth;
+    canvas.height = webcamVideo.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+    const imgDataUrl = canvas.toDataURL('image/png');
+    previewImg.src = imgDataUrl;
+    previewImg.style.display = 'block';
+    analyzeBtn.disabled = false;
+    statusEl.textContent = 'Photo captured from webcam. Ready to analyze.';
+  });
+
+  // Enable analyze button only for valid image
+  uploadEl.addEventListener('change', () => {
+    predictionEl.textContent = '';
+    statusEl.textContent = '';
+    const file = uploadEl.files[0];
+    if (!file) {
+      analyzeBtn.disabled = true;
+      previewImg.style.display = 'none';
+      return;
+    }
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      statusEl.textContent = 'Unsupported file type. Please upload JPG or PNG.';
+      analyzeBtn.disabled = true;
+      previewImg.style.display = 'none';
+      return;
+    }
+    if (file.size > maxFileSizeMB * 1024 * 1024) {
+      statusEl.textContent = 'File too large. Maximum size is 10 MB.';
+      analyzeBtn.disabled = true;
+      previewImg.style.display = 'none';
+      return;
+    }
+
+    statusEl.textContent = '';
+    analyzeBtn.disabled = false;
+    previewImg.src = URL.createObjectURL(file);
+    previewImg.style.display = 'block';
+  });
+
+ // Analyze image
+analyzeBtn.addEventListener('click', async () => {
+  statusEl.textContent = 'Analyzing image...';
+  predictionEl.textContent = '';
+
+  const img = previewImg;
+
+  try {
+    const predictions = await model.predict(img);
+    predictions.sort((a, b) => b.probability - a.probability);
+
+    // ✅ Only the best prediction
+    const topPrediction = predictions[0];
+    const topClass = topPrediction.className;
+    const topConfidence = (topPrediction.probability * 100).toFixed(2);
+    const treatmentText = treatments[topClass] || "No treatment advice available.";
+
+    let html = `<p><strong>Crop Type Selected:</strong> ${cropType.value.charAt(0).toUpperCase() + cropType.value.slice(1)}</p>`;
+    html += `<p><strong>Detected Disease:</strong> ${topClass} (${topConfidence}%)</p>`;
+    html += `<p style="margin-top:1rem;"><strong>Treatment Recommendation:</strong> ${treatmentText}</p>`;
+
+    predictionEl.innerHTML = html;
+    statusEl.textContent = 'Analysis complete.';
+  } catch (err) {
+    statusEl.textContent = 'Error during prediction: ' + err.message;
+    console.error(err);
+  }
+});
+
+
+  loadModel();
+  startWebcam();
+</script>
+
+</body>
+</html>
